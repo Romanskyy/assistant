@@ -1,6 +1,5 @@
 import pickle
-from prettytable import PrettyTable
-from termcolor2 import colored
+
 
 try:
     from classes import *
@@ -22,104 +21,6 @@ name_file = CONTACTS_FILE
 path_file = Path(path) / name_file
 
 len_str = 108+19
-
-
-def pretty(block):
-    '''
-        Данная функция создана исключительно для обработки функции show_all,
-        1. Принимает блок
-        2. Парсит его
-        3. Добавляет обработанную инфу в таблицу
-        4. Возвращает таблицу
-        '''
-    # from prettytable import ORGMODE
-    # vertical_char=chr(9553), horizontal_char=chr(9552), junction_char=chr(9580)
-    # vertical_char=chr(9475), horizontal_char=chr(9473), junction_char=chr(9547)
-    #  vertical_char="⁝", horizontal_char="᠃", junction_char="྿"
-    # ஃ ৹ ∘"܀" "܅" ྿ ፠ ᎒ ። ᠃
-    if isinstance(block, Record):
-        record = block
-        block = AddressBook()
-        block[record.name] = record
-    table = PrettyTable([], vertical_char="ஃ",
-                        horizontal_char="∘", junction_char="ஃ")
-    titles = ('имя'.center(20), 'дата рождения'.center(15), 'телефоны'.center(
-        18), 'email'.center(20), 'адрес'.center(20), 'заметки'.center(15))
-    table.field_names = titles
-    table.align = 'l'
-    # table.align['заметки'.center(15)] = 'l'
-
-    for name, record in block.items():
-        name = name.split()
-
-        bd = [str(record.birthday)]
-
-        phone = [str(phone) for phone in record.phones]
-
-        w_em = textwrap.TextWrapper(width=20, break_long_words=True)
-        email = w_em.wrap('\n'.join([email.email for email in record.emails]))
-
-        w_ad = textwrap.TextWrapper(width=20, break_long_words=True)
-        address = w_ad.wrap(record.address or '')
-
-        w_no = textwrap.TextWrapper(width=15, break_long_words=True)
-        note = ' \n'.join([f"{str(k)} : {v}" for k, v in record.note.items()])
-        note = w_no.wrap(note or '')
-
-        x = list(itertools.zip_longest(
-            name, bd, phone, email, address, note, fillvalue=""))
-        # print(x)
-        for lst in x:
-            table.add_row(lst)
-    return colored(table, 'yellow')
-
-
-def pretty_input(text):
-
-    print(colored(text, color='blue'))
-    user_input = input('>>> ')
-    print(colored('৹' * len_str, color='green'))
-    return user_input
-
-
-def pretty_print(text, color='green'):
-
-    if isinstance(text, str):
-        text = [el.ljust(len_str) for el in text.split('\n')]
-        text = '\n'.join(text)
-        print(colored(text, color='green', attrs=['bold']))
-        print(colored('৹' * len_str, color='green'))
-    elif isinstance(text, (Record, AddressBook)):
-        pretty_table(text, color='yellow', attrs=['reverse'])
-    else:
-        print(colored(str(text), color='red', attrs=['bold', 'blink']))
-
-
-def pretty_table(addressbook, N=10, color='yellow', attr=[]):
-    # выводит на экран всю адресную книгу блоками по N записей. Основная обработка
-    # реализована как метод класса addressbook, что позволяет использовать аналогичный
-    # вывод для результатов поиска по запросам, так как функции поиска возвращают
-    # объект типа addressbook с результатами
-    n = int(N)
-    if isinstance(addressbook, AddressBook):
-        pretty_print(f'всего к выводу {len(addressbook)} записей: ')
-        for block in addressbook.out_iterator(n):
-            print(pretty(block))
-            if len(block) == n:
-                usr_choice = input(colored(
-                    'Нажмите "Enter", или введите "q", что бы закончить просмотр.\n', 'yellow'))
-                if usr_choice:
-                    """Если пользователь вводит любой символ, его перебрасывает на основное меню."""
-                    break
-            continue
-        return colored('Вывод окончен!', color)
-
-    if isinstance(addressbook, Record):
-        record = addressbook
-        x = AddressBook()
-        x[record.name] = record
-        print(pretty(x))
-    # print('объект не является ни записью ни адресной книгой')
 
 
 # -----------------серелизация-и-десерелизация----------------------
