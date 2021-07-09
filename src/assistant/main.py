@@ -55,7 +55,7 @@ def main():
     while True:
         # addressbook.add_fake_records(40)
 
-        pretty_print(menu)
+        print(menu)
         input_string = input('>>>  ')
         # убираем разбор строки на слова и поиск команды
         # res_pars = parse(input_string)
@@ -67,8 +67,14 @@ def main():
             serialize_users(addressbook, path_file)
             print('Пока!')
             break
-        pretty_print(result)
+        print(result)
 
 
 if __name__ == '__main__':
+    old_print = print
+    old_input = input
+    print = ConsoleInterface().print
+    input = ConsoleInterface().input
+    old_print('1')
+    print('3')
     main()
