@@ -150,6 +150,12 @@ class ConsoleInterface(Interface):
         return table
 
 
+class Viewable(ABC):
+    @abstractmethod
+    def view(self):
+        pass
+
+
 class Note(UserDict):
     """
     FOR JUST IN CASE
