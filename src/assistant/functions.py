@@ -13,6 +13,7 @@ import textwrap
 import itertools
 from datetime import datetime
 from pathlib import Path
+from prettytable import PrettyTable
 from termcolor2 import colored
 CONTACTS_FILE = 'contacts.dat'
 CONTACTS_DIR = ''
@@ -20,105 +21,61 @@ path = CONTACTS_DIR
 name_file = CONTACTS_FILE
 path_file = Path(path) / name_file
 
-len_str = 108+19
-
-
-def pretty(block):
-    '''
-        Данная функция создана исключительно для обработки функции show_all,
-        1. Принимает блок
-        2. Парсит его
-        3. Добавляет обработанную инфу в таблицу
-        4. Возвращает таблицу
-        '''
-    # from prettytable import ORGMODE
-    # vertical_char=chr(9553), horizontal_char=chr(9552), junction_char=chr(9580)
-    # vertical_char=chr(9475), horizontal_char=chr(9473), junction_char=chr(9547)
-    #  vertical_char="⁝", horizontal_char="᠃", junction_char="྿"
-    # ஃ ৹ ∘"܀" "܅" ྿ ፠ ᎒ ። ᠃
-    if isinstance(block, Record):
-        record = block
-        block = AddressBook()
-        block[record.name] = record
-    table = PrettyTable([], vertical_char="ஃ",
-                        horizontal_char="∘", junction_char="ஃ")
-    titles = ('имя'.center(20), 'дата рождения'.center(15), 'телефоны'.center(
-        18), 'email'.center(20), 'адрес'.center(20), 'заметки'.center(15))
-    table.field_names = titles
-    table.align = 'l'
-    # table.align['заметки'.center(15)] = 'l'
-
-    for name, record in block.items():
-        name = name.split()
-
-        bd = [str(record.birthday)]
-
-        phone = [str(phone) for phone in record.phones]
-
-        w_em = textwrap.TextWrapper(width=20, break_long_words=True)
-        email = w_em.wrap('\n'.join([email.email for email in record.emails]))
-
-        w_ad = textwrap.TextWrapper(width=20, break_long_words=True)
-        address = w_ad.wrap(record.address or '')
-
-        w_no = textwrap.TextWrapper(width=15, break_long_words=True)
-        note = ' \n'.join([f"{str(k)} : {v}" for k, v in record.note.items()])
-        note = w_no.wrap(note or '')
-
-        x = list(itertools.zip_longest(
-            name, bd, phone, email, address, note, fillvalue=""))
-        # print(x)
-        for lst in x:
-            table.add_row(lst)
-    return colored(table, 'yellow')
+LEN_STR_PRINT = 108+19
 
 
 def pretty_input(text):
-
     print(colored(text, color='blue'))
     user_input = input('>>> ')
-    print(colored('৹' * len_str, color='green'))
+    print(colored('৹' * LEN_STR_PRINT, color='green'))
     return user_input
 
 
-def pretty_print(text, color='green'):
+def pretty_print(data):
+    args_pretty = dict()
+    if isinstance(data, str):
+        pretty_print_str(data, args_pretty)
 
-    if isinstance(text, str):
-        text = [el.ljust(len_str) for el in text.split('\n')]
-        text = '\n'.join(text)
-        print(colored(text, color='green', attrs=['bold']))
-        print(colored('৹' * len_str, color='green'))
-    elif isinstance(text, (Record, AddressBook)):
-        pretty_table(text, color='yellow', attrs=['reverse'])
-    else:
-        print(colored(str(text), color='red', attrs=['bold', 'blink']))
+    elif isinstance(data, Record):
+        record = data
+        data = AddressBook()
+        data[record.name] = record
+
+        pretty_print_table(data, args_pretty)
+
+    elif isinstance(data, AddressBook):
+        pretty_print_table(data, args_pretty)
+
+    elif isinstance(data, Exception):
+        pretty_print_exception(data, args_pretty)
 
 
-def pretty_table(addressbook, N=10, color='yellow', attr=[]):
-    # выводит на экран всю адресную книгу блоками по N записей. Основная обработка
-    # реализована как метод класса addressbook, что позволяет использовать аналогичный
-    # вывод для результатов поиска по запросам, так как функции поиска возвращают
-    # объект типа addressbook с результатами
-    n = int(N)
-    if isinstance(addressbook, AddressBook):
-        pretty_print(f'всего к выводу {len(addressbook)} записей: ')
-        for block in addressbook.out_iterator(n):
-            print(pretty(block))
-            if len(block) == n:
-                usr_choice = input(colored(
-                    'Нажмите "Enter", или введите "q", что бы закончить просмотр.\n', 'yellow'))
-                if usr_choice:
-                    """Если пользователь вводит любой символ, его перебрасывает на основное меню."""
-                    break
-            continue
-        return colored('Вывод окончен!', color)
+def pretty_print_exception(data, args_pretty={}):
+    args_pretty.setdefault('color', 'red')
+    args_pretty.setdefault('on_color', None)
+    args_pretty.setdefault('attrs', ['bold', 'blink'])
+    print(colored(data, *args_pretty.values()))
 
-    if isinstance(addressbook, Record):
-        record = addressbook
-        x = AddressBook()
-        x[record.name] = record
-        print(pretty(x))
-    # print('объект не является ни записью ни адресной книгой')
+
+def pretty_print_str(data, args_pretty={}):
+    args_pretty.setdefault('color', 'green')
+    args_pretty.setdefault('on_color', None)
+    args_pretty.setdefault('attrs', [])
+    data = [el.ljust(LEN_STR_PRINT) for el in data.split('\n')]
+    data = '\n'.join(data)
+    print(colored(data, *args_pretty.values()))
+
+
+def pretty_print_table(data, args_pretty={}, n=10):
+    args_pretty.setdefault('color', 'yellow')
+    args_pretty.setdefault('on_color', None)
+    args_pretty.setdefault('attrs', ['bold'])
+
+    #pretty_print_str(f'всего к выводу {len(data)} записей: ', args_pretty)
+
+    print(colored(data, *args_pretty.values()))
+
+
 # -----------------серелизация-и-десерелизация----------------------
 
 
@@ -181,13 +138,13 @@ def get_handler(res_pars, addressbook):
         change_adr(record)
         add_eml(record)
         add_note(record)
-        return f'в адресную книгу внесена запись: \n{pretty(record)}'
+        return f'в адресную книгу внесена запись: \n{RecordViewKonsole(record).view()}'
 
     @error_handler
     def change_f(addressbook):
 
         record = search_record(addressbook)
-        pretty_table(record)
+        pretty_print_table(RecordViewKonsole(record).view())
         pretty_print(menu_change)
         item_number = input('>>>  ')
         return func_change[item_number](record)
@@ -231,12 +188,12 @@ def get_handler(res_pars, addressbook):
     def search(addressbook):
         user_input = pretty_input('Что Вы хотите найти? введите паттерн: ')
         # осуществляет поиск введенной строки во всех текстовых полях адресной книги
-        result = addressbook.search(user_input)
+        result = addressbook.search(user_input)  # type AddressBook
 
         if not result:
             raise Exception('По данному запросу ничего не найдено')
 
-        return pretty_table(result, N=10)
+        return result
 
     @error_handler
     def search_bd(addressbook):
@@ -249,7 +206,7 @@ def get_handler(res_pars, addressbook):
                 datetime.strptime(data_start, "%d-%m-%Y")
                 break
             except:
-                pretty_print("Это не дата ")
+                pretty_print_str("Это не дата ")
                 data_start = pretty_input(
                     'Еще раз. Первая дата (формат дд-мм-гггг) ')
         data_stop = pretty_input('Вторая дата (формат дд-мм-гггг)')
@@ -259,15 +216,16 @@ def get_handler(res_pars, addressbook):
         except:
             pretty_print("Это не дата . Будем искать в одном дне")
             result = addressbook.search_birthday(data_start)
-        return pretty_table(result, N=10)
+        return result
 
     def search_record(adressbook):
         pattern = pretty_input(
             'введите имя записи или часть имени/значения поля, которое однозначно определяет запись: ')
         res = addressbook.search(pattern)
+
         while len(res) != 1:
-            pretty_print(f'найдено {len(res)} записей')
-            print(f'{pretty(res)}')
+            pretty_print_str(f'найдено {len(res)} записей')
+            pretty_print_table(AddressBookViewKonsole(res).view())
             pattern = pretty_input(
                 'введите более точный запрос или порядковый номер абонента в этой таблице (1/2/...) ')
             try:
@@ -281,11 +239,12 @@ def get_handler(res_pars, addressbook):
                 res = addressbook.search(pattern)
 
         name, record = list(res.items())[0]
-        pretty_print(f'найдена запись с именем {name}')
+
+        pretty_print_str(f'найдена запись с именем {name}')
         return record
 
     def show_all_f(addressbook, N=10):
-        return pretty_table(addressbook, N)
+        return AddressBookViewKonsole(addressbook).view()
 
     # -----------закончились-функции-работы-с-адресбук--------первое-меню---------------------------------
 
@@ -298,7 +257,7 @@ def get_handler(res_pars, addressbook):
             if not email_new:
                 return 'email не введен'
             record.add_email(email_new)
-            return f'в запись добавлен e-mail: \n{pretty(record)}'
+            return f'в запись добавлен e-mail: \n{RecordViewKonsole(record).view()}'
         return 'такой записи не существует или поисковом шаблону соотвекстует более одной записи'
 
     def add_note(record):
@@ -308,7 +267,7 @@ def get_handler(res_pars, addressbook):
             if not note_new:
                 return 'заметка  не введена'
             record.add_note(note_new)
-            return f'в запись добавлена заметка: \n{pretty(record)}'
+            return f'в запись добавлена заметка: \n{RecordViewKonsole(record).view()}'
         return 'такой записи не существует или поисковом шаблону соответствует более одной записи'
 
     def add_phone(record):
@@ -318,7 +277,7 @@ def get_handler(res_pars, addressbook):
             if not phone:
                 return 'телефон не введен'
             record.add_phone(phone)
-            return f'в запись добавлен новый телефон: \n{pretty(record)}'
+            return f'в запись добавлен новый телефон: \n{RecordViewKonsole(record).view()}'
         return 'такой записи не существует или поисковом шаблону соответствует более одной записи'
 
     def change_adr(record):
@@ -327,7 +286,7 @@ def get_handler(res_pars, addressbook):
             # pretty_print(f'текущий адрес:  {address_old}')
             address_new = pretty_input('введите адрес ("ввод" - пропустить): ')
             record.add_address(address_new)
-            return f'в запись добавлен адрес: \n{pretty(record)}'
+            return f'в запись добавлен адрес: \n{RecordViewKonsole(record).view()}'
         return 'такой записи не существует или поисковом шаблону соотвекстует более одной записи'
 
     def change_bd(record):
@@ -339,7 +298,7 @@ def get_handler(res_pars, addressbook):
             if not birthday_str:
                 return True
             record.add_birthday(birthday_str)
-            return f'в запись добавлен день рождения: \n{pretty(record)}'
+            return f'в запись добавлен день рождения: \n{RecordViewKonsole(record).view()}'
         return 'такой записи не существует или поисковом шаблону соотвекстует более одной записи'
 
     def change_eml(record):
@@ -351,14 +310,15 @@ def get_handler(res_pars, addressbook):
                 if not number_old_email:
                     return True
                 if 0 < int(number_old_email) <= len(record.emails):
-                    old_email = record.emails[number_old_email-1].email
-                    answer = pretty_input(f'Этот номер {old_email}?(д/н)')
+                    old_email = record.emails[int(number_old_email)-1].email
+                    answer = pretty_input(
+                        f'Этот email {EmailViewKonsole(old_email).view()}?(д/н)')
                 else:
                     answer = 'н'
                     pretty_print('У абонента нет столько email')
             new_email = pretty_input('Введите новый email ')
             result = record.change_email(old_email, new_email)
-            return f'У абонента изменен email: \n{pretty(record)}'
+            return f'У абонента изменен email: \n{RecordViewKonsole(record).view()}'
         return 'такой записи не существует или поисковом шаблону соответствует более одной записи'
 
     def change_name(record):
@@ -371,7 +331,7 @@ def get_handler(res_pars, addressbook):
             addressbook.del_record(record.name)
             record.change_name(name)
             addressbook.add_record(record)
-            return f'в записи изменено имя: \n{pretty(record)}'
+            return f'в записи изменено имя: \n{RecordViewKonsole(record).view()}'
         return 'такой записи не существует или поисковом шаблону соответствует более одной записи'
 
     def change_phone(record):
@@ -383,14 +343,15 @@ def get_handler(res_pars, addressbook):
                 if not number_old_phone:
                     return True
                 if 0 < int(number_old_phone) <= len(record.phones):
-                    old_phone = record.phones[number_old_phone-1].phone
-                    answer = pretty_input(f'Этот номер {old_phone}?(д/н)')
+                    old_phone = record.phones[int(number_old_phone)-1].phone
+                    answer = pretty_input(
+                        f'Этот номер {PhoneViewKonsole(old_phone).view()}?(д/н)')
                 else:
                     answer = 'н'
                     pretty_print('У абонента нет столько номеров')
             new_phone = pretty_input('Введите новый номер ')
             result = record.change_phone(old_phone, new_phone)
-            return f'в запись добавлен новый телефон: \n{pretty(record)}'
+            return f'в запись добавлен новый телефон: \n{RecordViewKonsole(record).view()}'
         return 'такой записи не существует или поисковом шаблону соответствует более одной записи'
 
     def del_eml(record):
@@ -402,13 +363,14 @@ def get_handler(res_pars, addressbook):
                 if not number_old_email:
                     return True
                 if 0 < int(number_old_email) <= len(record.emails):
-                    old_email = record.emails[number_old_email-1].email
-                    answer = pretty_input(f'Этот номер {old_email}?(д/н)')
+                    old_email = record.emails[int(number_old_email)-1].email
+                    answer = pretty_input(
+                        f'Этот номер {EmailViewKonsole(old_email).view()}?(д/н)')
                 else:
                     answer = 'н'
                     pretty_print('У абонента нет столько email')
             result = record.del_email(old_email)
-            return f'У абонента удален email: \ {pretty(record)}'
+            return f'У абонента удален email: \ {RecordViewKonsole(record).view()}'
         return 'такой записи не существует или поисковом шаблону соответствует более одной записи'
 
     def del_phone(record):
@@ -420,13 +382,14 @@ def get_handler(res_pars, addressbook):
                 if not number_old_phone:
                     return True
                 if 0 < int(number_old_phone) <= len(record.phones):
-                    old_phone = record.phones[number_old_phone-1].phone
-                    answer = pretty_input(f'Этот номер {old_phone}?(д/н)')
+                    old_phone = record.phones[int(number_old_phone)-1].phone
+                    answer = pretty_input(
+                        f'Этот номер {PhoneViewKonsole(old_phone).view()}?(д/н)')
                 else:
                     answer = 'н'
                     pretty_print('У абонента нет столько телефонов')
             result = record.del_email(old_phone)
-            return f'У абонента удален номер: \ {pretty(record)}'
+            return f'У абонента удален номер: \ {RecordViewKonsole(record).view()}'
         return 'такой записи не существует или поисковом шаблону соответствует более одной записи'
 
     def is_in(addressbook, name):
@@ -666,7 +629,7 @@ def get_handler(res_pars, addressbook):
                             record.add_phone(phone)
                         for email in predictors_dict['emails']:
                             record.add_email(email)
-                        pretty_table(record)
+                        # pretty_table(record)
                         return f"в запись {name} добавлено {len(predictors_dict['phones']) + len(predictors_dict['emails'])} элеметов"
                     return 'операция отменена'
                 pretty_print(
@@ -693,7 +656,7 @@ def get_handler(res_pars, addressbook):
                             record = address_book[name]
                             record.add_address(
                                 predictors_dict['selected_text'])
-                            pretty_table(record)
+                            # pretty_table(record)
                             return f"в запись {name} добавлен адрес"
                         return 'операция отменена'
                     elif 'note' in predictors_dict['objects']:
@@ -706,7 +669,7 @@ def get_handler(res_pars, addressbook):
                             record = address_book[name]
                             record.add_note(
                                 predictors_dict['selected_text'])
-                            pretty_table(record)
+                            # pretty_table(record)
                             return f"в запись {name} добавлена заметка"
                         return 'операция отменена'
                 pretty_print(
@@ -721,7 +684,7 @@ def get_handler(res_pars, addressbook):
                     birthday_str = pretty_input(
                         'введите день рождения в формате дд-мм-гггг: ')
                     record.add_birthday(birthday_str)
-                    pretty_table(record)
+                    # pretty_table(record)
                     return f'в запись добавлен день рождения: \n {record.birthday.__repr__()}'
                 pretty_print(
                     f'записи с именем {name} - невозможно добавить что-либо. Сначала создайте запись.')
@@ -817,7 +780,6 @@ def parse(input_string):  # --> ('key word', parameter)
         # пробелов слева и справа) и номера телефона. Если номер телефона не найден,
         # вместо него возвращается пустая строка.
 
-        import re
         phone_regex = re.compile(r'[+]?[\d\-\(\)]{5,18}\s?$')
         match = phone_regex.search(src)
         if match is None:

@@ -12,150 +12,6 @@ from abc import abstractmethod, abstractproperty, ABC
 LEN_STR_PRINT = 108+19
 
 
-class Interface(ABC):
-
-    @abstractmethod
-    def input(self, *args, **kwargs):
-        pass
-
-    @abstractmethod
-    def print(self, *args, **kwargs):
-        pass
-
-
-class ConsoleInterface(Interface):
-
-    def input(self, text):
-        old_print(colored(text, color='blue'))
-        user_input = old_input('>>> ')
-        old_print(colored('৹' * LEN_STR_PRINT, color='green'))
-        return user_input
-
-    def print(self, data):
-        args_pretty = dict()
-        if isinstance(data, str):
-            self.print_str(data, args_pretty)
-
-        elif isinstance(data, Record):
-            record = data
-            data = AddressBook()
-            data[record.name] = record
-
-            self.print_table(data, args_pretty)
-
-        elif isinstance(data, AddressBook):
-            self.print_table(data, args_pretty)
-
-        elif isinstance(data, Exception):
-            self.print_exception(data, args_pretty)
-
-    def print_exception(self, data, args_pretty={}):
-        args_pretty.setdefault('color', 'red')
-        args_pretty.setdefault('on_color', None)
-        args_pretty.setdefault('attrs', ['bold', 'blink'])
-        old_print(colored(data, *args_pretty.values()))
-
-    def print_str(self, data, args_pretty={}):
-        args_pretty.setdefault('color', 'green')
-        args_pretty.setdefault('on_color', None)
-        args_pretty.setdefault('attrs', [])
-        data = [el.ljust(LEN_STR_PRINT) for el in data.split('\n')]
-        data = '\n'.join(data)
-        old_print(colored(data, *args_pretty.values()))
-
-    def print_table(self, data, args_pretty={}, N=10):
-        args_pretty.setdefault('color', 'yellow')
-        args_pretty.setdefault('on_color', None)
-        args_pretty.setdefault('attrs', ['bold'])
-        # выводит на экран всю адресную книгу блоками по N записей. Основная обработка
-        # реализована как метод класса addressbook, что позволяет использовать аналогичный
-        # вывод для результатов поиска по запросам, так как функции поиска возвращают
-        # объект типа addressbook с результатами
-        n = int(N)
-        self.print_str(f'всего к выводу {len(data)} записей: ', args_pretty)
-        for block in data.out_iterator(n):
-            old_print(colored(self.create_table(block), *args_pretty.values()))
-            if len(block) == n:
-                usr_choice = self.input(
-                    'Нажмите "Enter", или введите "q", что бы закончить просмотр.\n')
-                if usr_choice:
-                    """Если пользователь вводит любой символ, его перебрасывает на основное меню."""
-                    return ""
-        return 'Вывод окончен!'
-
-    def create_table(self, block):
-        '''
-            Данная функция создает таблицу записей в нужном нам виде,
-            1. Принимает блок
-            2. Парсит его
-            3. Добавляет обработанную инфу в таблицу
-            4. Возвращает таблицу как str
-            '''
-        # from prettytable import ORGMODE
-        # vertical_char=chr(9553), horizontal_char=chr(9552), junction_char=chr(9580)
-        # vertical_char=chr(9475), horizontal_char=chr(9473), junction_char=chr(9547)
-        #  vertical_char="⁝", horizontal_char="᠃", junction_char="྿"
-        # ஃ ৹ ∘"܀" "܅" ྿ ፠ ᎒ ። ᠃
-
-        # -----  вид таблицы. заголовок, размеры колонок , разделитители
-        table = PrettyTable([], vertical_char="ஃ",
-                            horizontal_char="৹", junction_char="ஃ")
-        titles = ('имя'.center(20), 'дата рождения'.center(15), 'телефоны'.center(
-            18), 'email'.center(20), 'адрес'.center(20), 'заметки'.center(15))
-        table.field_names = titles
-        table.align = 'l'
-        # table.align['заметки'.center(15)] = 'l'
-
-        for name, record in block.items():
-            '''каждый абонент в каждом поле может иметь несколько строк
-               поэтому каждое поле разбивается на список строк
-               Получим, что у каждого абонента поля это списки строк разной длины
-               После этого zip_longest  их соединяет по наибольшей длине
-               И полученный результат - список списков поэлементно добавляем в таблицу'''
-            name = name.split()  # имя  - в список
-
-            # день рождения один, поэтому делаем список из одного элемента
-            bd = [str(record.birthday)]
-
-            # телефоны - в список их строчных представлений
-            phone = [str(phone) for phone in record.phones]
-
-            # emails - попытка разбить на строки
-            # можно и нужно сделать лучше
-            # по 20 символов без разрывов
-            w_em = textwrap.TextWrapper(width=20, break_long_words=True)
-            email = w_em.wrap(
-                ' \n'.join([email.email for email in record.emails]))
-
-            # адрес хорошо разбился на строки
-            # по 20 символов без разрывов слов
-            w_ad = textwrap.TextWrapper(width=20, break_long_words=True)
-            address = w_ad.wrap(record.address or '')
-
-            # заметки тоже должны разбиваться
-            # без разрывов слов
-            w_no = textwrap.TextWrapper(width=15, break_long_words=True)
-            note = ' \n'.join(
-                [f"{str(k)} : {v}" for k, v in record.note.items()])
-            note = w_no.wrap(note or '')
-
-            # склеиваем зипом
-            x = list(itertools.zip_longest(
-                name, bd, phone, email, address, note, fillvalue=""))
-
-            # все элементы списка списков
-            # добавляем  в таблицу
-            for lst in x:
-                table.add_row(lst)
-        return table
-
-
-class Viewable(ABC):
-    @abstractmethod
-    def view(self):
-        pass
-
-
 class Note(UserDict):
     """
     FOR JUST IN CASE
@@ -390,41 +246,7 @@ class Record:
                 output_str += f"|    {elem[count:count + 74].__repr__():<74}|\n"
                 count += 74
         output_str += '_' * 80 + '\n'
-        # print(output_str)
         return output_str
-        """
-        name = 'Boris'
-        birthday = '03.06.1978'
-        phones = ['7987979', '0080800', '098080980']
-        emails = ['sdsd@kjhkj.uh', 'jhgh@jhk.jh',
-            'jgjhgjh@kjh.uy', 'hgjhgj@jhgj.gkj', 'jhjhg@gfg.hg']
-        ph = 'CONTACT\'S PHONES'
-        em = 'CONTACT\'S EMAILS'
-        st = f" {line * 81:} \n"
-        st += f"|{name:.^81}|\n"
-        st += f"|{birthday:.^81}|\n"
-        st += f"|{ph:.^40}|{em:.^40}|\n"
-        biggest = len(phones) if len(phones) > len(emails) else len(emails)
-        for i in range(biggest):
-            phone = ''.join(phones[:1]) if phones else ''
-            email = ''.join(emails[:1]) if emails else ''
-            phones = phones[1:]
-            emails = emails[1:]
-
-            st += f"|{phone:.^40}|{email:.^40}|\n"
-
-        print(st)
-        ВЫВОД БУДЕТ СЛЕДУЮЩИМ
-         _________________________________________________________________________________
-        |......................................Boris......................................|
-        |...................................03.06.1978....................................|
-        |............CONTACT'S PHONES............|............CONTACT'S EMAILS............|
-        |................7987979.................|.............sdsd@kjhkj.uh..............|
-        |................0080800.................|..............jhgh@jhk.jh...............|
-        |...............098080980................|.............jgjhgjh@kjh.uy.............|
-        |........................................|............hgjhgj@jhgj.gkj.............|
-        |........................................|..............jhjhg@gfg.hg..............|
-        """
 
     def add_birthday(self, birthday):
         # добавляет день рождения в существующую запись
@@ -564,7 +386,148 @@ class AddressBook(UserDict):
                 minimum_age=10, maximum_age=115).strftime('%d-%m-%Y')
             record = Record(name, date_of_birth).add_phone(phone)
             self.add_record(record)
+            # что это здесь делает ?
             print(f'Добавлена запись: {name}  {date_of_birth}  {phone}')
+
+
+class Window:
+    w = {'тип выводимых данных':  "представление"}
+
+
+class Viewable(ABC):
+    @abstractmethod
+    def view(self):
+        pass
+
+
+class NoteViewKonsole(Viewable):
+    def __init__(self, data: Note):
+        self.__dict__ = data.__dict__
+
+    def view(self):
+        result = ''
+        for k, v in self.data.items():
+            result += f'{k} - {v}\n'
+        return result
+
+
+class EmailViewKonsole(Viewable):
+    def __init__(self, data: Email):
+        self.email = data.email
+
+    def view(self):
+        return self.email
+
+
+class PhoneViewKonsole(Viewable):
+    def __init__(self, data: Phone):
+        self.phone = data.phone
+
+    def view(self):
+        x = self.phone
+        s = f'+{x[:2]}({x[2:4]})-{x[4:7]}-{x[7:]}'
+
+        return s
+
+
+class BirthdayViewKonsole(Viewable):
+    def __init__(self, data: Birthday):
+        self.birthday = data.birthday
+
+    def view(self):
+        return self.birthday.strftime('%d-%m-%Y')
+
+
+class RecordViewKonsole(Viewable):
+    def __init__(self, data: Record):
+
+        self.__dict__ = data.__dict__
+
+    def create_table(self):
+        '''
+            Данная функция создает таблицу для одной записи в нужном нам виде,
+            1. Принимает запись
+            2. Парсит ее
+            3. Добавляет обработанную инфу в таблицу
+            4. Возвращает таблицу как str
+            '''
+        # from prettytable import ORGMODE
+        # ஃ ৹ ∘"܀" "܅" ྿ ፠ ᎒ ። ᠃
+
+        # -----  вид таблицы. заголовок, размеры колонок , разделитители
+        table = PrettyTable([], vertical_char="ஃ",
+                            horizontal_char="৹", junction_char="ஃ")
+        titles = ('имя'.center(20), 'дата рождения'.center(15), 'телефоны'.center(
+            18), 'email'.center(20), 'адрес'.center(20), 'заметки'.center(15))
+        table.field_names = titles
+        table.align = 'l'
+        # table.align['заметки'.center(15)] = 'l'
+
+        '''каждый абонент в каждом поле может иметь несколько строк
+            поэтому каждое поле разбивается на список строк
+            Получим, что у каждого абонента поля это списки строк разной длины
+            После этого zip_longest  их соединяет по наибольшей длине
+            И полученный результат - список списков поэлементно добавляем в таблицу'''
+        name = self.name.split()  # имя  превращаем в список
+        # день рождения один, поэтому делаем список из одного элемента
+        bd = ['' if not self.birthday else BirthdayViewKonsole(
+            self.birthday).view()]
+
+        # телефоны - в список их строчных представлений
+        phone = [PhoneViewKonsole(phone).view() for phone in self.phones]
+
+        # emails - попытка разбить на строки
+        # можно и нужно сделать лучше
+        # по 20 символов без разрывов
+        w_em = textwrap.TextWrapper(width=20, break_long_words=True)
+        email = w_em.wrap(
+            ' \n'.join([EmailViewKonsole(email).view() for email in self.emails]))
+
+        # адрес хорошо разбился на строки
+        # по 20 символов без разрывов слов
+        w_ad = textwrap.TextWrapper(width=20, break_long_words=True)
+        address = w_ad.wrap(self.address or '')
+
+        # заметки тоже должны разбиваться
+        # без разрывов слов
+        w_no = textwrap.TextWrapper(width=15, break_long_words=True)
+        note = NoteViewKonsole(self.note).view()
+        note = w_no.wrap(note or '')
+
+        # склеиваем зипом
+        x = list(itertools.zip_longest(
+            name, bd, phone, email, address, note, fillvalue=""))
+
+        # все элементы списка списков
+        # добавляем  в таблицу
+        for lst in x:
+            table.add_row(lst)
+
+        return table.get_string()
+
+    def view(self):
+
+        # форматирует и выводит одну запись в читаемом виде одной или нескольких строк
+        return self.create_table()
+
+
+class AddressBookViewKonsole(Viewable):
+    def __init__(self, data: AddressBook):
+        self.__dict__ = data.__dict__
+
+    def view(self):
+        res = ''
+
+        for i, elem in enumerate(self.data.values()):
+
+            block = RecordViewKonsole(elem).view()
+            if i:
+                block = block.split('\n')
+                block = '\n'.join(block[3:])
+
+            res += '\n' + block
+
+        return res
 
 
 if __name__ == '__main__':
